@@ -10,12 +10,35 @@ import android.widget.Spinner
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.intentFor
 import org.jetbrains.anko.onItemSelectedListener
-import kotlin.properties.Delegates
 import kotlin.properties.Delegates.observable
 
-abstract class MainActivity : AppCompatActivity() {
+abstract class StackTrackingActivity : AppCompatActivity() {
 
     val name = this.javaClass.simpleName + " num " + counter++
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        title = name
+        activityStack += this
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        activityStack -= this
+    }
+
+    abstract fun updateStackMonitor(activityStack: List<StackTrackingActivity>);
+
+    companion object {
+        var activityStack: List<StackTrackingActivity> by observable(listOf()) { p, o, n ->
+            n.forEach { it.updateStackMonitor(n) }
+        }
+        var counter = 0
+    }
+}
+
+abstract class MainActivity : StackTrackingActivity() {
+
     var chosenFlags: List<Pair<String, Int>> by observable(emptyList()) { p, o, n ->
         flagsMonitor.text = n.joinToString(separator = "\n", transform = { it.first })
     }
@@ -27,17 +50,10 @@ abstract class MainActivity : AppCompatActivity() {
         buttonB.onClickStartActivityWithChosenFlag<B>()
         buttonC.onClickStartActivityWithChosenFlag<C>()
         chooseFlagSpinner.setUp()
-        title = name
-        activityStack += this
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        activityStack -= this
-    }
-
-    fun updateStackMonitor() {
-        activityStackMonitor.text = activityStack.joinToString(separator = "\n", transform = MainActivity::name)
+    override fun updateStackMonitor(activityStack: List<StackTrackingActivity>) {
+        activityStackMonitor.text = activityStack.joinToString(separator = "\n", transform = StackTrackingActivity::name)
     }
 
     private fun Spinner.setUp() {
@@ -86,10 +102,6 @@ abstract class MainActivity : AppCompatActivity() {
                 "FLAG_ACTIVITY_TASK_ON_HOME" to FLAG_ACTIVITY_TASK_ON_HOME,
                 "FLAG_ACTIVITY_RETAIN_IN_RECENTS" to FLAG_ACTIVITY_RETAIN_IN_RECENTS,
                 "FLAG_ACTIVITY_LAUNCH_ADJACENT" to FLAG_ACTIVITY_LAUNCH_ADJACENT)
-        var counter = 0
-        var activityStack: List<MainActivity> by observable(listOf()) { p, o, n ->
-            n.forEach { it.updateStackMonitor() }
-        }
     }
 }
 
