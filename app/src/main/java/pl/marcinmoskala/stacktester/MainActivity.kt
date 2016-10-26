@@ -11,11 +11,14 @@ import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.intentFor
 import org.jetbrains.anko.onItemSelectedListener
 import kotlin.properties.Delegates
+import kotlin.properties.Delegates.observable
 
 abstract class MainActivity : AppCompatActivity() {
 
     val name = this.javaClass.simpleName + " num " + counter++
-    var chosenFlags: List<Int> = emptyList()
+    var chosenFlags: List<Pair<String, Int>> by observable(emptyList()) { p, o, n ->
+        flagsMonitor.text = n.joinToString(separator = "\n", transform = { it.first })
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,13 +50,8 @@ abstract class MainActivity : AppCompatActivity() {
     private fun onItemChosen(position: Int) {
         val flag = flagOptions.toList()[position]
         if (flag.second != 0) {
-            addFlag(flag)
+            chosenFlags += flag
         }
-    }
-
-    private fun addFlag(flag: Pair<String, Int>) {
-        chosenFlags += flag.second
-        flagsMonitor.text = flagsMonitor.text.toString() + "\n" + flag.first
     }
 
     private inline fun <reified T : Activity> View.onClickStartActivityWithChosenFlag() {
@@ -62,8 +60,9 @@ abstract class MainActivity : AppCompatActivity() {
 
     private inline fun <reified T : Activity> startActivityWithChosenFlag() {
         val intent = intentFor<T>()
-        for (f in chosenFlags) intent.addFlags(f)
+        for (f in chosenFlags) intent.addFlags(f.second)
         startActivity(intent)
+        chosenFlags = emptyList()
     }
 
     companion object {
@@ -88,7 +87,7 @@ abstract class MainActivity : AppCompatActivity() {
                 "FLAG_ACTIVITY_RETAIN_IN_RECENTS" to FLAG_ACTIVITY_RETAIN_IN_RECENTS,
                 "FLAG_ACTIVITY_LAUNCH_ADJACENT" to FLAG_ACTIVITY_LAUNCH_ADJACENT)
         var counter = 0
-        var activityStack: List<MainActivity> by Delegates.observable(listOf()) { p, o, n ->
+        var activityStack: List<MainActivity> by observable(listOf()) { p, o, n ->
             n.forEach { it.updateStackMonitor() }
         }
     }
