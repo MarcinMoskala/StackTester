@@ -18,14 +18,12 @@ abstract class MainActivity : AppCompatActivity() {
             "FLAG_ACTIVITY_NEW_TASK" to FLAG_ACTIVITY_NEW_TASK,
             "FLAG_ACTIVITY_CLEAR_TOP" to FLAG_ACTIVITY_CLEAR_TOP,
             "FLAG_ACTIVITY_SINGLE_TOP" to FLAG_ACTIVITY_SINGLE_TOP,
-            "FLAG_ACTIVITY_CLEAR_TOP | FLAG_ACTIVITY_SINGLE_TOP" to FLAG_ACTIVITY_CLEAR_TOP.or(FLAG_ACTIVITY_SINGLE_TOP),
             "FLAG_ACTIVITY_NO_HISTORY" to FLAG_ACTIVITY_NO_HISTORY,
             "FLAG_ACTIVITY_MULTIPLE_TASK" to FLAG_ACTIVITY_MULTIPLE_TASK,
             "FLAG_ACTIVITY_FORWARD_RESULT" to FLAG_ACTIVITY_FORWARD_RESULT,
             "FLAG_ACTIVITY_PREVIOUS_IS_TOP" to FLAG_ACTIVITY_PREVIOUS_IS_TOP,
             "FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS" to FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS,
             "FLAG_ACTIVITY_BROUGHT_TO_FRONT" to FLAG_ACTIVITY_BROUGHT_TO_FRONT,
-            "FLAG_ACTFLAG_ACTIVITY_CLEAR_TOP.or(FLAG_ACTIVITY_SINGLE_TOP)IVITY_RESET_TASK_IF_NEEDED" to FLAG_ACTIVITY_RESET_TASK_IF_NEEDED,
             "FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY" to FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY,
             "FLAG_ACTIVITY_NEW_DOCUMENT" to FLAG_ACTIVITY_NEW_DOCUMENT,
             "FLAG_ACTIVITY_NO_USER_ACTION" to FLAG_ACTIVITY_NO_USER_ACTION,
@@ -36,7 +34,9 @@ abstract class MainActivity : AppCompatActivity() {
             "FLAG_ACTIVITY_RETAIN_IN_RECENTS" to FLAG_ACTIVITY_RETAIN_IN_RECENTS,
             "FLAG_ACTIVITY_LAUNCH_ADJACENT" to FLAG_ACTIVITY_LAUNCH_ADJACENT)
 
-    var chosenFlag: Int = FLAG_ACTIVITY_NEW_TASK
+    val name = this.javaClass.simpleName + " num " + counter++
+
+    var chosenFlags: List<Int> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,7 +45,7 @@ abstract class MainActivity : AppCompatActivity() {
         buttonB.onClickShowActivityWithChosenFlag<B>()
         buttonC.onClickShowActivityWithChosenFlag<C>()
         chooseFlagSpinner.setUp()
-        title = this.javaClass.simpleName + " num " + counter++
+        title = name
         activityStack += this
     }
 
@@ -55,15 +55,19 @@ abstract class MainActivity : AppCompatActivity() {
     }
 
     fun updateStackMonitor() {
-        val transform: (MainActivity) -> String = { it.javaClass.simpleName + if (it == this) " now visible" else "" }
-        activityStackMonitor.text = activityStack.joinToString(separator = "\n", transform = transform)
+        activityStackMonitor.text = activityStack.joinToString(separator = "\n", transform = MainActivity::name)
     }
 
     private fun Spinner.setUp() {
         adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, flagOptions.keys.toMutableList())
         onItemSelectedListener {
-            onItemSelected { adapterView, view, i, l -> chosenFlag = flagOptions.values.toList()[i] }
+            onItemSelected { adapterView, view, i, l -> addChosenFlag(flagOptions.toList()[i]) }
         }
+    }
+
+    fun addChosenFlag(flag: Pair<String, Int>) {
+        chosenFlags += flag.second
+        flagsMonitor.text = flagsMonitor.text.toString() + "\n" + flag.first
     }
 
     private inline fun <reified T : Activity> View.onClickShowActivityWithChosenFlag() {
@@ -71,7 +75,9 @@ abstract class MainActivity : AppCompatActivity() {
     }
 
     private inline fun <reified T : Activity> startActivityWithChosenFlag() {
-        startActivity(intentFor<T>().setFlags(chosenFlag))
+        val intent = intentFor<T>()
+        for(f in chosenFlags) intent.addFlags(f)
+        startActivity(intent)
     }
 }
 
